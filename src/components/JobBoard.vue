@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid p-2 mt-4">
     <h3>Job Table</h3>
-    <button @click="searchJobs" class="btn btn-primary">Search</button>
+    <button @click="searchJobs" class="btn btn-primary mb-2">Search</button>
 
     <table class="table table-bordered">
       <thead>
@@ -9,9 +9,9 @@
           <th>Company</th>
           <th>Mission</th>
           <th>Business model</th>
-          <th>Size</th>
-          <th>Age</th>
-          <th>Maturity</th>
+          <th>Size (Employees)</th>
+          <th>Age (Years)</th>
+          <th>Maturity level</th>
         </tr>
       </thead>
       <tbody>
@@ -24,7 +24,11 @@
                 {{ companyGroup.company }} ({{ companyGroup.positions.length }} positions)
               </button>
             </td>
-            <td>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</td>
+            <td>{{companyGroup.mission}}</td>
+            <td>{{companyGroup.revenue}}</td>
+            <td>{{companyGroup.size}}</td>
+            <td>{{companyGroup.age}}</td>
+            <td>{{companyGroup.maturity}}</td>
           </tr>
           <!-- Positions Rows -->
           <tr :class="{ collapse: companyGroup.collapsed }">
@@ -45,7 +49,9 @@
                     <td><a :href="position.jobUrl">{{ position.position }}</a></td>
                     <td>{{ position.location }}</td>
                     <td>{{ position.date }}</td>
-                    <td>{{ position.salary }}</td>
+                    <td>{{ position.Salary }}</td>
+                    <td>{{ position.Role }}</td>
+                    <td>{{ position.Technologies }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -59,7 +65,6 @@
 
 <script>
 import { getFunctions, httpsCallable } from "firebase/functions";
-import OpenAI from "openai";
 export default {
   props: {
     columns: {
@@ -81,6 +86,11 @@ export default {
           acc.push({
             company: job.company,
             companyLogo: job.companyLogo,
+            mission: job.Mission,
+            revenue: job.Revenue,
+            size: job.Size,
+            age: job.Age,
+            maturity: job.Maturity,
             collapsed: false,
             positions: [job]
           });
@@ -111,10 +121,6 @@ export default {
       this.groupedJobData = this.getGroupedJobData();
     }
   },
-  mounted() {
-    
-
-  }
 };
 </script>
 
