@@ -1,7 +1,34 @@
 <template>
   <div class="container-fluid p-2 mt-4">
     <h3>Job Table</h3>
-    <button @click="searchJobs" class="btn btn-primary mb-2">Search</button>
+    <form @submit.prevent="searchJobs" class="row g-3 align-items-center mb-3">
+      <!-- Keyword Input -->
+      <div class="col-auto">
+        <label for="keyword" class="form-label">Keyword</label>
+        <input type="text" id="keyword" v-model="queryOptions.keyword" class="form-control" placeholder="Enter keyword" />
+      </div>
+
+      <!-- Location Input -->
+      <div class="col-auto">
+        <label for="location" class="form-label">Location</label>
+        <input type="text" id="location" v-model="queryOptions.location" class="form-control" placeholder="Enter location" />
+      </div>
+
+      <!-- Remote Filter Dropdown -->
+      <div class="col-auto">
+        <label for="remoteFilter" class="form-label">Work Type</label>
+        <select id="remoteFilter" v-model="queryOptions.remoteFilter" class="form-select">
+          <option value="on site">On Site</option>
+          <option value="remote">Remote</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary mt-4">Search</button>
+      </div>
+    </form>
 
     <table class="table table-bordered">
       <thead>
@@ -24,11 +51,11 @@
                 {{ companyGroup.company }} ({{ companyGroup.positions.length }} positions)
               </button>
             </td>
-            <td>{{companyGroup.mission}}</td>
-            <td>{{companyGroup.revenue}}</td>
-            <td>{{companyGroup.size}}</td>
-            <td>{{companyGroup.age}}</td>
-            <td>{{companyGroup.maturity}}</td>
+            <td>{{ companyGroup.mission }}</td>
+            <td>{{ companyGroup.revenue }}</td>
+            <td>{{ companyGroup.size }}</td>
+            <td>{{ companyGroup.age }}</td>
+            <td>{{ companyGroup.maturity }}</td>
           </tr>
           <!-- Positions Rows -->
           <tr :class="{ collapse: companyGroup.collapsed }">
@@ -64,7 +91,7 @@
 </template>
 
 <script>
-import { getFunctions, httpsCallable } from "firebase/functions";
+//import { getFunctions, httpsCallable } from "firebase/functions";
 export default {
   props: {
     columns: {
@@ -75,7 +102,19 @@ export default {
   data() {
     return {
       jobData: [],
-      groupedJobData: []
+      groupedJobData: [],
+      queryOptions:{
+        keyword: 'AI',
+        location: 'Spain',
+        dateSincePosted: '',
+        jobType: '',
+        remoteFilter: 'remote',
+        salary: '',
+        experienceLevel: '',
+        limit: '5',
+        page: "1",
+        sortBy: 'relevant'
+      }
     }
   },
   methods: {
@@ -101,21 +140,22 @@ export default {
       }, []);
     },
     async searchJobs() {
-      const queryOptions = {
-        keyword: 'AI',
-        location: 'Spain',
-        dateSincePosted: '',
-        jobType: '',
-        remoteFilter: 'remote',
-        salary: '',
-        experienceLevel: '',
-        limit: '10',
-        page: "0",
-        sortBy: 'relevant'
-      };
-      const functions = getFunctions();
-      const liAPI = httpsCallable(functions, 'searchLI');
-      const gcloudResp = await liAPI(queryOptions);
+      /*const functions = getFunctions();
+      const liAPI = httpsCallable(functions, 'searchLI');*/
+
+      const liAPI = async (queryOptions) => {
+        const resp = await fetch('http://localhost:3000/searchLI',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ queryOptions: queryOptions })
+          }
+        );
+        const data = await resp.json();
+        return data;
+      }
+
+      const gcloudResp = await liAPI(this.queryOptions);
       console.log(gcloudResp)
       this.jobData = gcloudResp.data;
       this.groupedJobData = this.getGroupedJobData();
