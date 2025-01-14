@@ -4,7 +4,20 @@ const linkedIn = require('linkedin-jobs-api');
 const OpenAI = require("openai");
 const cheerio = require('cheerio');
 const z = require('zod')
+const crypto = require('crypto');
 const { zodResponseFormat } = require('openai/helpers/zod')
+const { initializeApp } = require("firebase/app");
+const  { getDatabase, ref, get, set, push, remove, update } = require("firebase/database");
+const firebaseConfig = require('./firebaseConf')
+
+initializeApp(firebaseConfig);
+const db = getDatabase();
+var offers = {}
+get(ref(db, '/')).then((snapshot) => {
+  if (snapshot.exists()) {
+    offers = snapshot.val();
+  }
+})
 
 const apiKey = 'XXXX'
 
@@ -51,7 +64,7 @@ function getCompanyPrompt(company, context) {
 async function fetchWithRetry(url, retries = 3, delayMs = 2000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      if(attempt>1)
+      if (attempt > 1)
         console.log(`Attempt ${attempt} to fetch ${url}`);
       const resp = await fetch(url);
       const html = await resp.text();
@@ -99,54 +112,67 @@ app.use(cors({
 // Middleware to parse JSON
 app.use(express.json());
 
+function generateHash(company, position) {
+  const hash = crypto.createHash('sha256');
+  hash.update(company + position);
+  return hash.digest('hex');  // Generates a hash string that is safe for Firebase paths
+}
+
 // Define a simple endpoint
-app.post('/searchLI', (request, response) => {
+app.post('/searchLI', async (request, response) => {
   const { queryOptions } = request.body;
   console.log(queryOptions)
-  linkedIn.query(queryOptions).then(data => {
-    let gptProms = [];
-    let nonDupData = {}
+  let emptyResults = true
+  let nonDupData = {}
+  while (emptyResults && queryOptions.page<10) {
+    const data = await linkedIn.query(queryOptions)
     data.forEach(element => {
-      const uniqueKey = element.company + element.position;
-      if (!(uniqueKey in nonDupData)) {
+      const uniqueKey = generateHash(element.company,element.position);
+
+      if (!(uniqueKey in offers || uniqueKey in nonDupData)) {
         nonDupData[uniqueKey] = element;
       }
     })
+    emptyResults =  Object.keys(nonDupData).length===0
+    queryOptions.page++;
+  }
 
-    nonDupData = Object.values(nonDupData);
-    const openai = new OpenAI({ apiKey: apiKey});
+  let gptProms = [];
+  const openai = new OpenAI({ apiKey: apiKey });
+  let retData = [];
 
-    let contextData = [];
+  for (let uniqueKey in nonDupData) {
+    let element = nonDupData[uniqueKey];
+    console.log(element)
+    gptProms.push(fetchWithRetry(element.jobUrl)
+      .then((context) => {
+        if (context) {
+          const completion = openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            store: true,
+            messages: [
+              { "role": "user", "content": getCompanyPrompt(element.company, context) },
+            ],
+            response_format: zodResponseFormat(OutFormat, "offers")
+          });
 
-    for (let element of nonDupData) {
-      console.log(element)
-      gptProms.push(fetchWithRetry(element.jobUrl)
-        .then((context) => {
-          if (context) {
-            const completion = openai.chat.completions.create({
-              model: "gpt-4o-mini",
-              store: true,
-              messages: [
-                { "role": "user", "content": getCompanyPrompt(element.company, context) },
-              ],
-              response_format: zodResponseFormat(OutFormat, "offers")
-            });
-
-            completion.then((result) => {
-              const msg = JSON.parse(result.choices[0].message.content);
-              Object.assign(element, msg);
-              contextData.push(element);
-            });
-            return completion
-          } else {
-            return new Promise(resolve => resolve());
-          }
-        }))
-    };
-    Promise.all(gptProms).then(() => {
-      response.send({ data: contextData });
-    })
-  });
+          completion.then((result) => {
+            const msg = JSON.parse(result.choices[0].message.content);
+            Object.assign(element, msg);
+            retData.push(element);
+            set(ref(db, '/' + uniqueKey), element);
+            offers[uniqueKey] = element;
+          });
+          return completion
+        } else {
+          return new Promise(resolve => resolve());
+        }
+      }))
+  };
+  Promise.all(gptProms).then(() => {
+    console.log('Finished')
+    response.send({ data: retData });
+  })
 });
 
 // Start the server
