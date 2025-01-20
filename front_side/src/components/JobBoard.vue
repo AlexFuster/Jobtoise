@@ -112,7 +112,7 @@ export default {
         salary: '',
         experienceLevel: '',
         limit: '5',
-        page: "1",
+        page: 0,
         sortBy: 'relevant'
       }
     }
@@ -155,9 +155,9 @@ export default {
         return data;
       }
 
-      const gcloudResp = await liAPI(this.queryOptions);
-      console.log(gcloudResp)
-      this.jobData = gcloudResp.data;
+      const serverResp = await liAPI(this.queryOptions);
+      console.log(serverResp)
+      this.jobData = serverResp.data;
       this.groupedJobData = this.getGroupedJobData();
     }
   },
