@@ -1,17 +1,27 @@
 <template>
-  <div class="container-fluid p-2 mt-4">
-    <h3>Job Table</h3>
-    <form @submit.prevent="searchJobs" class="row g-3 align-items-center mb-3">
+  <div class="container-fluid p-1">
+    <h3>Job <img src="favicon.ico" width="7%">Toise</h3>
+    
+    <div class="btn-group">
+      <button class="btn btn-primary" :class="{ active: activeTab == 0 }" @click="activeTab = 0">Search</button>
+      <button class="btn btn-primary" :class="{ active: activeTab == 1 }" @click="activeTab = 1">Seen</button>
+      <button class="btn btn-primary" :class="{ active: activeTab == 2 }" @click="activeTab = 2">Liked</button>
+      <button class="btn btn-primary" :class="{ active: activeTab == 3 }" @click="activeTab = 3">Disliked</button>
+    </div>
+
+    <form v-if="activeTab == 0" @submit.prevent="searchJobs" class="row g-3 align-items-center">
       <!-- Keyword Input -->
       <div class="col-auto">
         <label for="keyword" class="form-label">Keyword</label>
-        <input type="text" id="keyword" v-model="queryOptions.keyword" class="form-control" placeholder="Enter keyword" />
+        <input type="text" id="keyword" v-model="queryOptions.keyword" class="form-control"
+          placeholder="Enter keyword" />
       </div>
 
       <!-- Location Input -->
       <div class="col-auto">
         <label for="location" class="form-label">Location</label>
-        <input type="text" id="location" v-model="queryOptions.location" class="form-control" placeholder="Enter location" />
+        <input type="text" id="location" v-model="queryOptions.location" class="form-control"
+          placeholder="Enter location" />
       </div>
 
       <!-- Remote Filter Dropdown -->
@@ -29,81 +39,19 @@
         <button type="submit" class="btn btn-primary mt-4">Search</button>
       </div>
     </form>
-
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Company</th>
-          <th>Mission</th>
-          <th>Business model</th>
-          <th>Size (Employees)</th>
-          <th>Age (Years)</th>
-          <th>Maturity level</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="(companyGroup, companyIndex) in groupedJobData" :key="companyIndex">
-          <!-- Company Row -->
-          <tr>
-            <td>
-              <button class="btn btn-link text-start w-100" @click="companyGroup.collapsed = !companyGroup.collapsed">
-                <img :src="companyGroup.companyLogo" class="me-2">
-                {{ companyGroup.company }} ({{ companyGroup.positions.length }} positions)
-              </button>
-            </td>
-            <td>{{ companyGroup.mission }}</td>
-            <td>{{ companyGroup.revenue }}</td>
-            <td>{{ companyGroup.size }}</td>
-            <td>{{ companyGroup.age }}</td>
-            <td>{{ companyGroup.maturity }}</td>
-          </tr>
-          <!-- Positions Rows -->
-          <tr :class="{ collapse: companyGroup.collapsed }">
-            <td colspan="6">
-              <table class="table table-borderless">
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th>Location</th>
-                    <th>Date</th>
-                    <th>Salary</th>
-                    <th>Role Description</th>
-                    <th>Requirements</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(position, positionIndex) in companyGroup.positions" :key="positionIndex">
-                    <td><a :href="position.jobUrl">{{ position.position }}</a></td>
-                    <td>{{ position.location }}</td>
-                    <td>{{ position.date }}</td>
-                    <td>{{ position.Salary }}</td>
-                    <td>{{ position.Role }}</td>
-                    <td>{{ position.Technologies }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+    <JobTable :jobData="jobData"></JobTable>
   </div>
 </template>
 
 <script>
 //import { getFunctions, httpsCallable } from "firebase/functions";
+import JobTable from './JobTable.vue';
 export default {
-  props: {
-    columns: {
-      type: Array,
-      required: true,
-    },
-  },
+  components: { JobTable },
   data() {
     return {
       jobData: [],
-      groupedJobData: [],
-      queryOptions:{
+      queryOptions: {
         keyword: 'AI',
         location: 'Spain',
         dateSincePosted: '',
@@ -114,31 +62,11 @@ export default {
         limit: '5',
         page: 0,
         sortBy: 'relevant'
-      }
+      },
+      activeTab: 0
     }
   },
   methods: {
-    getGroupedJobData() {
-      return this.jobData.reduce((acc, job) => {
-        const companyIndex = acc.findIndex(item => item.company === job.company);
-        if (companyIndex === -1) {
-          acc.push({
-            company: job.company,
-            companyLogo: job.companyLogo,
-            mission: job.Mission,
-            revenue: job.Revenue,
-            size: job.Size,
-            age: job.Age,
-            maturity: job.Maturity,
-            collapsed: false,
-            positions: [job]
-          });
-        } else {
-          acc[companyIndex].positions.push(job);
-        }
-        return acc;
-      }, []);
-    },
     async searchJobs() {
       /*const functions = getFunctions();
       const liAPI = httpsCallable(functions, 'searchLI');*/
@@ -158,9 +86,19 @@ export default {
       const serverResp = await liAPI(this.queryOptions);
       console.log(serverResp)
       this.jobData = serverResp.data;
-      this.groupedJobData = this.getGroupedJobData();
     }
   },
+  watch:{
+    activeTab(newValue, oldValue){
+      
+    }
+  },
+  mounted(){
+    fetch('http://localhost:3000/load')
+      .then(resp=>resp.json())
+      .then(jsonData=>{this.jobData = jsonData.data})
+      .catch(error=>{})
+  }
 };
 </script>
 
