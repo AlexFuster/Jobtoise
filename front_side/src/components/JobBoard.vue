@@ -1,6 +1,6 @@
 <template>
-  <div class="container-fluid p-1">
-    <h3>Job <img src="favicon.ico" width="7%">Toise</h3>
+  <div class="container-fluid p-2">
+    <h3>Job <img src="favicon.ico" width="5%">Toise</h3>
 
     <div class="btn-group">
       <button class="btn btn-primary" :class="{ active: activeTab == 0 }" @click="activeTab = 0">Search</button>
@@ -44,7 +44,6 @@
 </template>
 
 <script>
-//import { getFunctions, httpsCallable } from "firebase/functions";
 import JobTable from './JobTable.vue';
 import jobStore from '@/store/index';
 
