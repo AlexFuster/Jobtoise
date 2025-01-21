@@ -149,15 +149,19 @@ class JTAPI:
         empty_results = True
         non_dup_data = {}
 
+        n_jobs_search = int(query_options['limit'])
+        n_missing_jobs = n_jobs_search
         # Fetch data from LinkedIn
-        while empty_results and query_options.get("page", 0) < 10:
+        while n_missing_jobs>0 and query_options.get("page", 0) < 20:
             data = query(query_options)
             for element in data:
                 primary_key = (element["company"], element["position"])
                 if not self.db.load(*primary_key) and primary_key not in non_dup_data:
                     non_dup_data[primary_key] = element
 
-            empty_results = len(non_dup_data) == 0
+            n_missing_jobs = n_jobs_search-len(non_dup_data)
+            if n_missing_jobs>0:
+                query_options['limit'] = str(n_missing_jobs)
             query_options["page"] += 1
 
         # Process data with OpenAI and fetch additional context

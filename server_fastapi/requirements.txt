@@ -1,0 +1,8 @@
+pydantic==2.10.1
+fastapi==0.115.2
+fastapi-cli==0.0.5
+beautifulsoup4==4.12.3
+pymongo==4.10.1
+nest-asyncio==1.6.0
+requests==2.32.3
+openai==1.59.9
