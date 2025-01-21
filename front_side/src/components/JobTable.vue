@@ -42,12 +42,24 @@
               </thead>
               <tbody>
                 <tr v-for="(position, positionIndex) in companyGroup.positions" :key="positionIndex">
-                  <td><a :href="position.jobUrl">{{ position.position }}</a></td>
-                  <td>{{ position.location }}</td>
-                  <td>{{ position.date }}</td>
-                  <td>{{ position.Salary }}</td>
-                  <td>{{ position.Role }}</td>
-                  <td>{{ position.Technologies }}</td>
+                  <td class="align-middle"><a :href="position.jobUrl">{{ position.position }}</a></td>
+                  <td class="align-middle">{{ position.location }}</td>
+                  <td class="align-middle">{{ position.date }}</td>
+                  <td class="align-middle">{{ position.Salary }}</td>
+                  <td class="align-middle">{{ position.Role }}</td>
+                  <td class="align-middle">{{ position.Technologies }}</td>
+                  <td class="align-middle">
+                    <div class="d-flex flex-row justify-content-center">
+                      <i class="btn btn-primary bi fs-4 rounded-start-5 rounded-0"
+                        :class="position.liked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'"
+                        @click="likeJob(position)"></i>
+
+                      <i class="btn btn-primary bi fs-4 rounded-0"
+                        :class="position.disliked ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'"
+                        @click="dislikeJob(position)"></i>
+                      <button class="btn btn-primary rounded-end-5  bi bi-robot fs-4 rounded-0"></button>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -59,7 +71,12 @@
 </template>
 
 <script>
+import jobStore from '@/store/index';
 export default {
+  setup(){
+    const jStore = jobStore();
+    return {jStore}
+  },
   props: {
     jobData: {
       type: Array,
@@ -68,7 +85,9 @@ export default {
   },
   data() {
     return {
-      groupedJobData : []
+      groupedJobData: [],
+      isHoveredUp: false,
+      isHoveredDown: false
     }
   },
   methods: {
@@ -93,9 +112,15 @@ export default {
         return acc;
       }, []);
     },
+    likeJob(job) {
+      job.likeJob()
+    },
+    dislikeJob(job) {
+      job.dislikeJob();
+    }
   },
-  watch:{
-    jobData(){
+  watch: {
+    jobData() {
       this.groupedJobData = this.getGroupedJobData();
     }
   }

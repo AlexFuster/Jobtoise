@@ -1,52 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
-from pydantic import BaseModel
-from typing import List
 from linkedinAPI import query
 from openai import OpenAI
-from hashlib import sha256
 import time
 import asyncio
 import requests
 from bs4 import BeautifulSoup
 import json
 from mykeys import apiKey
-
-# Define the data structure for the output JSON
-class AIOutputData(BaseModel):
-    Mission: str
-    Revenue: str
-    Size: List[int]
-    Age: int
-    Maturity: str
-    Role: str
-    Technologies: str
-    Salary: str
-
-class PoditionData(BaseModel):
-    position: str
-    company: str
-    location: str
-    date: str
-    salary: str
-    jobUrl: str
-    companyLogo: str
-    agoTime: str
-    Mission: str
-    Revenue: str
-    Size: List[int]
-    Age: int
-    Maturity: str
-    Role: str
-    Technologies: str
-    Salary: str
-
-class OutputData(BaseModel):
-    data: List[PoditionData]
-
-# Function to generate a unique hash
-def generate_hash(company: str, position: str) -> str:
-    return sha256(f"{company}:{position}".encode()).hexdigest()
+from io_formats import AIOutputData, OutputData
+from db_manager import DBManager
 
 
 def fetch_with_retry(url, retries=3, delay_ms=2000):
@@ -145,10 +108,13 @@ class JTAPI:
 
         self.openai = OpenAI(api_key = apiKey)
         self.app.add_api_route("/searchLI", self.searchLI, methods=["POST"], response_model=OutputData)
-        self.offers = {}
+        self.app.add_api_route("/loadAll", self.loadAll, methods=["GET"], response_model=OutputData)
+        self.app.add_api_route("/likeJob", self.likeJob, methods=["PUT"])
+        self.app.add_api_route("/dislikeJob", self.dislikeJob, methods=["PUT"])
 
-
-    async def process_element(self, element, unique_key):
+        self.db = DBManager()
+        
+    async def process_element(self, element):
         context = fetch_with_retry(element["jobUrl"])
         if context:
             response = self.openai.beta.chat.completions.parse(
@@ -164,9 +130,18 @@ class JTAPI:
             )
             parsed_message = response.choices[0].message.parsed
             element.update(parsed_message)
+            element['liked'] = False
+            element['disliked'] = False
             self.ret_data.append(element)
-            #db.reference(f"/{unique_key}").set(element)
-            self.offers[unique_key] = element
+
+    def loadAll(self):
+        return {"data": self.db.loadAll()}
+
+    def likeJob(self,body:dict):
+        self.db.likeJob(**body)
+
+    def dislikeJob(self,body:dict):
+        self.db.dislikeJob(**body)
 
     async def searchLI(self,body: dict):
         query_options = body.get("queryOptions", {})
@@ -178,9 +153,9 @@ class JTAPI:
         while empty_results and query_options.get("page", 0) < 10:
             data = query(query_options)
             for element in data:
-                unique_key = generate_hash(element["company"], element["position"])
-                if unique_key not in self.offers and unique_key not in non_dup_data:
-                    non_dup_data[unique_key] = element
+                primary_key = (element["company"], element["position"])
+                if not self.db.load(*primary_key) and primary_key not in non_dup_data:
+                    non_dup_data[primary_key] = element
 
             empty_results = len(non_dup_data) == 0
             query_options["page"] += 1
@@ -189,13 +164,14 @@ class JTAPI:
         gpt_proms = []
         self.ret_data = []
 
-        for unique_key, element in non_dup_data.items():
-            gpt_proms.append(self.process_element(element, unique_key))
+        for element in non_dup_data.values():
+            gpt_proms.append(self.process_element(element))
 
         # Wait for all async tasks to complete
         await asyncio.gather(*gpt_proms)
 
         #print(self.ret_data)
+        self.db.save(self.ret_data)
 
         return {"data": self.ret_data}
 

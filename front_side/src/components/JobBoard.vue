@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid p-1">
     <h3>Job <img src="favicon.ico" width="7%">Toise</h3>
-    
+
     <div class="btn-group">
       <button class="btn btn-primary" :class="{ active: activeTab == 0 }" @click="activeTab = 0">Search</button>
       <button class="btn btn-primary" :class="{ active: activeTab == 1 }" @click="activeTab = 1">Seen</button>
@@ -46,11 +46,17 @@
 <script>
 //import { getFunctions, httpsCallable } from "firebase/functions";
 import JobTable from './JobTable.vue';
+import jobStore from '@/store/index';
+
 export default {
   components: { JobTable },
+  setup() {
+    const jStore = jobStore();
+    return { jStore }
+  },
   data() {
     return {
-      jobData: [],
+      searchResults: [],
       queryOptions: {
         keyword: 'AI',
         location: 'Spain',
@@ -64,6 +70,26 @@ export default {
         sortBy: 'relevant'
       },
       activeTab: 0
+    }
+  },
+  computed: {
+    jobData() {
+      let res;
+      switch (this.activeTab) {
+        case 0:
+          res = this.searchResults;
+          break;
+        case 1:
+          res = this.jStore.seenJobs;
+          break;
+        case 2:
+          res = this.jStore.likedJobs;
+          break;
+        case 3:
+          res = this.jStore.dislikedJobs;
+          break;
+      }
+      return res
     }
   },
   methods: {
@@ -85,19 +111,14 @@ export default {
 
       const serverResp = await liAPI(this.queryOptions);
       console.log(serverResp)
-      this.jobData = serverResp.data;
+      this.searchResults = this.jStore.addJobs(serverResp);
     }
   },
-  watch:{
-    activeTab(newValue, oldValue){
-      
-    }
-  },
-  mounted(){
-    fetch('http://localhost:3000/load')
-      .then(resp=>resp.json())
-      .then(jsonData=>{this.jobData = jsonData.data})
-      .catch(error=>{})
+  mounted() {
+    this.jStore.loadAll()
+      .then(() => {
+        console.log(this.jStore.jobList)
+      })
   }
 };
 </script>
