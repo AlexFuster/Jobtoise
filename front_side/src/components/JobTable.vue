@@ -1,5 +1,6 @@
 <template>
   <div>
+    <button class="btn btn-primary rounded-5  bi bi-robot fs-4 mt-3" @click="openChatbot"> Open chatbot assistant</button>
     <ChatbotWindow ref="chatbot"></ChatbotWindow>
     <table class="table table-bordered mt-3">
       <thead>

@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 from linkedinAPI import query
-from openai import OpenAI
 import time
 import asyncio
 import requests
@@ -10,7 +9,15 @@ import json
 from mykeys import apiKey
 from io_formats import AIOutputData, OutputData
 from db_manager import DBManager
+from qdrant_manager import QdrantManager
 from chatbot import Chatbot
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_openai import ChatOpenAI
+import os
+
+os.environ['OPENAI_API_KEY'] = apiKey
+
+
 
 def fetch_with_retry(url, retries=3, delay_ms=2000):
     for attempt in range(1, retries + 1):
@@ -89,6 +96,9 @@ def get_company_prompt(company, context):
   {context}
   """
 
+def get_unique_id(company, position):
+    return company+' | '+position
+
 class JTAPI:
     def __init__(self):
         # Enable CORS
@@ -106,7 +116,9 @@ class JTAPI:
             allow_headers=["*"],  # Allows all headers
         )
 
-        self.openai = OpenAI(api_key = apiKey)
+        self.model = ChatOpenAI(model="gpt-4o-mini",temperature=0)
+        self.search_model = self.model.with_structured_output(AIOutputData)
+
         self.app.add_api_route("/searchLI", self.searchLI, methods=["POST"], response_model=OutputData)
         self.app.add_api_route("/loadAll", self.loadAll, methods=["GET"], response_model=OutputData)
         self.app.add_api_route("/likeJob", self.likeJob, methods=["PUT"])
@@ -114,28 +126,23 @@ class JTAPI:
         self.app.add_api_route("/askBot", self.askBot, methods=["POST"])
 
         self.db = DBManager()
+        self.qd = QdrantManager()
 
-        self.chatbot = Chatbot(self.db.mongodb_client)
+        self.chatbot = Chatbot(self.model, self.db, self.qd)
         
     async def process_element(self, element):
         context = fetch_with_retry(element["jobUrl"])
         if context:
-            response = self.openai.beta.chat.completions.parse(
-                model="gpt-4o-mini",
-                store=True,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": get_company_prompt(element["company"], context),
-                    }
+            parsed_message = self.search_model.invoke([
+                    HumanMessage(get_company_prompt(element["company"], context))
                 ],
                 response_format=AIOutputData,
             )
-            parsed_message = response.choices[0].message.parsed
             element.update(parsed_message)
             element['liked'] = False
             element['disliked'] = False
             self.ret_data.append(element)
+            self.context_data.append(context)
 
     def loadAll(self):
         return {"data": self.db.loadAll()}
@@ -148,7 +155,7 @@ class JTAPI:
 
     def askBot(self,body:dict):
         print(body)
-        return {"data":self.chatbot(body['query'],body['company']+' | '+body['position'])}
+        return {"data":self.chatbot(body['query'],get_unique_id(body['company'],body['position']))}
 
 
     async def searchLI(self,body: dict):
@@ -175,6 +182,7 @@ class JTAPI:
         # Process data with OpenAI and fetch additional context
         gpt_proms = []
         self.ret_data = []
+        self.context_data = []
 
         for element in non_dup_data.values():
             gpt_proms.append(self.process_element(element))
@@ -184,6 +192,7 @@ class JTAPI:
 
         #print(self.ret_data)
         self.db.save(self.ret_data)
+        self.qd.addVectors(self.context_data,[get_unique_id(job['company'], job['position']) for job in self.ret_data])
 
         return {"data": self.ret_data}
 

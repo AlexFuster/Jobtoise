@@ -51,7 +51,6 @@ export default {
   },
   methods: {
     toggleChat() {
-      console.log(this.contextTitle)
       if(!this.isOpen){
         this.openChat()
       }else{
@@ -66,7 +65,6 @@ export default {
       if(!this.messages[this.contextTitle]){
         this.messages[this.contextTitle] = [{ sender: 'Bot', text: 'Hello! How can I assist you today?' }]
       }
-      console.log(this.contextTitle,this.messages,this.messages[this.contextTitle])
       this.isOpen = true;
     },
     async sendMessage() {
