@@ -3,8 +3,8 @@ import os
 
 class DBManager:
   def __init__(self):
-    mongo = pymongo.MongoClient(os.getenv("MONGO_URL", "mongodb://localhost:27017"))
-    db = mongo["jobtoise"]
+    self.mongodb_client = pymongo.MongoClient(os.getenv("MONGO_URL", "mongodb://localhost:27017"))
+    db = self.mongodb_client["jobtoise"]
     self.collection = db["jobs"]
   
   def loadAll(self):

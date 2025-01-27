@@ -11,7 +11,7 @@
             <div v-if="isOpen" class="card-body overflow-y-scroll d-flex flex-column justify-content-between" style="height: 50vh;" ref="chatBody">
                 <div>
                   <em v-if="contextTitle">Context taken from {{ contextTitle }}</em>
-                  <div v-for="(message, index) in messages" :key="index" class="mb-2">
+                  <div v-for="(message, index) in messages[contextTitle]" :key="index" class="mb-2">
                       <strong>{{ message.sender }}:</strong> {{ message.text }}
                   </div>
                 </div>
@@ -35,27 +35,59 @@ export default {
   data() {
     return {
       isOpen: false,
-      messages: [
-        { sender: 'Bot', text: 'Hello! How can I assist you today?' },
-      ],
+      messages:{},
       userInput: '',
+      company:'',
+      position:''
     };
   },
-  props:['contextTitle'],
+  computed:{
+    contextTitle(){
+      if(!this.company || !this.position)
+        return 'global'
+      
+      return JSON.stringify({company: this.company, position: this.position})
+    }
+  },
   methods: {
     toggleChat() {
       console.log(this.contextTitle)
-      this.isOpen = !this.isOpen;
+      if(!this.isOpen){
+        this.openChat()
+      }else{
+        this.isOpen = false;
+      }
     },
-    sendMessage() {
+    openChat(company, position){
+      if(company && position){
+        this.company = company;
+        this.position = position
+      }
+      if(!this.messages[this.contextTitle]){
+        this.messages[this.contextTitle] = [{ sender: 'Bot', text: 'Hello! How can I assist you today?' }]
+      }
+      console.log(this.contextTitle,this.messages,this.messages[this.contextTitle])
+      this.isOpen = true;
+    },
+    async sendMessage() {
       if (this.userInput.trim() !== '') {
-        this.messages.push({ sender: 'You', text: this.userInput });
+        this.messages[this.contextTitle].push({ sender: 'You', text: this.userInput });
+        const query = this.userInput
         this.userInput = '';
 
-        // Simulate bot response
-        setTimeout(() => {
-            this.messages.push({ sender: 'Bot', text: 'Thank you for your message!' });
-        }, 1000);
+        const resp = await fetch('http://localhost:3000/askBot',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: query,
+              company: this.company,
+              position: this.position
+            })
+          }
+        );
+        const jsonData = await resp.json();
+        this.messages[this.contextTitle].push({sender: 'Bot', text: jsonData.data.answer})
       }
     },
     scrollToBottom() {

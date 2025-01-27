@@ -10,7 +10,7 @@ import json
 from mykeys import apiKey
 from io_formats import AIOutputData, OutputData
 from db_manager import DBManager
-
+from chatbot import Chatbot
 
 def fetch_with_retry(url, retries=3, delay_ms=2000):
     for attempt in range(1, retries + 1):
@@ -111,8 +111,11 @@ class JTAPI:
         self.app.add_api_route("/loadAll", self.loadAll, methods=["GET"], response_model=OutputData)
         self.app.add_api_route("/likeJob", self.likeJob, methods=["PUT"])
         self.app.add_api_route("/dislikeJob", self.dislikeJob, methods=["PUT"])
+        self.app.add_api_route("/askBot", self.askBot, methods=["POST"])
 
         self.db = DBManager()
+
+        self.chatbot = Chatbot(self.db.mongodb_client)
         
     async def process_element(self, element):
         context = fetch_with_retry(element["jobUrl"])
@@ -142,6 +145,11 @@ class JTAPI:
 
     def dislikeJob(self,body:dict):
         self.db.dislikeJob(**body)
+
+    def askBot(self,body:dict):
+        print(body)
+        return {"data":self.chatbot(body['query'],body['company']+' | '+body['position'])}
+
 
     async def searchLI(self,body: dict):
         query_options = body.get("queryOptions", {})

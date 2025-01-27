@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ChatbotWindow ref="chatbot" :contextTitle="contextTitle"></ChatbotWindow>
+    <ChatbotWindow ref="chatbot"></ChatbotWindow>
     <table class="table table-bordered mt-3">
       <thead>
         <tr>
@@ -95,7 +95,6 @@ export default {
       groupedJobData: [],
       isHoveredUp: false,
       isHoveredDown: false,
-      contextTitle:''
     }
   },
   methods: {
@@ -121,8 +120,7 @@ export default {
       }, []);
     },
     openChatbot(company,position){
-      this.contextTitle = JSON.stringify({company,position})
-      this.$refs.chatbot.toggleChat();
+      this.$refs.chatbot.openChat(company,position);
     },
     likeJob(job) {
       job.likeJob()

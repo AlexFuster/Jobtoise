@@ -1,16 +1,12 @@
 <template>
   <div>
-    <JobBoard/>
+    <RouterView></RouterView>
   </div>
 </template>
 
 <script>
-import JobBoard from './components/JobBoard.vue';
 export default {
-  name: "App",
-  components: {
-    JobBoard,
-  },
+  name: "App"
 }
 
 </script>
