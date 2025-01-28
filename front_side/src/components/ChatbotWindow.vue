@@ -11,7 +11,7 @@
             <div v-if="isOpen" class="card-body overflow-y-scroll d-flex flex-column justify-content-between" style="height: 50vh;" ref="chatBody">
                 <div>
                   <em v-if="contextTitle">Context taken from {{ contextTitle }}</em>
-                  <div v-for="(message, index) in messages[contextTitle]" :key="index" class="mb-2">
+                  <div v-for="(message, index) in messages" :key="index" class="mb-2">
                       <strong>{{ message.sender }}:</strong> {{ message.text }}
                   </div>
                 </div>
@@ -35,7 +35,7 @@ export default {
   data() {
     return {
       isOpen: false,
-      messages:{},
+      messages:[],
       userInput: '',
       company:'',
       position:''
@@ -57,19 +57,29 @@ export default {
         this.isOpen = false;
       }
     },
-    openChat(company, position){
-      if(company && position){
+    async openChat(company, position){
+      if(company!=this.company || position!=this.position){
         this.company = company;
         this.position = position
-      }
-      if(!this.messages[this.contextTitle]){
-        this.messages[this.contextTitle] = [{ sender: 'Bot', text: 'Hello! How can I assist you today?' }]
+        const resp = await fetch('http://localhost:3000/openConversation',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              company: this.company,
+              position: this.position
+            })
+          }
+        );
+        const jsonData = await resp.json();
+        this.messages = [{ sender: 'Bot', text: 'Hello! How can I assist you today?' }]
+        this.messages.push(...jsonData.messages)
       }
       this.isOpen = true;
     },
     async sendMessage() {
       if (this.userInput.trim() !== '') {
-        this.messages[this.contextTitle].push({ sender: 'You', text: this.userInput });
+        this.messages.push({ sender: 'You', text: this.userInput });
         const query = this.userInput
         this.userInput = '';
 
@@ -77,15 +87,11 @@ export default {
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: query,
-              company: this.company,
-              position: this.position
-            })
+            body: JSON.stringify({query: query})
           }
         );
         const jsonData = await resp.json();
-        this.messages[this.contextTitle].push({sender: 'Bot', text: jsonData.data.answer})
+        this.messages.push({sender: 'Bot', text: jsonData.data.answer})
       }
     },
     scrollToBottom() {

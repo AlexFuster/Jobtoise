@@ -11,6 +11,9 @@ class State(MessagesState):
 
 MAX_RECURSION = 3
 
+def get_unique_id(company, position):
+    return company+' | '+position
+
 class Chatbot:
     def __init__(self, model, db , qd):
         tools = [self.search_job]
@@ -147,15 +150,36 @@ class Chatbot:
             state["recursion_count"] = recursion_count + 1
             return "tools"
 
-        elif len(messages) > 20:
+        elif len(messages) > 10:
             return "summarize_conversation"
         
         # Otherwise we can just end
         return END
 
+    def open_conversation(self,company,position):
+        self.init_jobsContext = []
+        if company and position :
+            data_dict = self.db.load(company,position)
+            del(data_dict['_id'])
+            self.init_jobsContext.append(data_dict)
+            thread_id = get_unique_id(company, position)
+        else:
+            thread_id = 'global'
 
-    def __call__(self, query, thread_id='global'):
-        config = {"configurable": {"thread_id": thread_id}}
+        self.config = {"configurable": {"thread_id": thread_id}}
+
+        message_history = []
+        graph_state = self.graph.get_state(self.config)
+        if graph_state.values.get("messages"):
+            for msg in graph_state.values["messages"]:
+                if type(msg)==HumanMessage:
+                    message_history.append({'sender': 'You', 'text': msg.content})
+                else:
+                    message_history.append({'sender': 'Bot', 'text': msg.content})
+
+        return message_history
+
+    def __call__(self, query):
         input_message = HumanMessage(content=query)
-        output = self.graph.invoke({"messages": [input_message]}, config) 
+        output = self.graph.invoke({"messages": [input_message], "jobsContext":self.init_jobsContext}, self.config) 
         return {'answer':output['messages'][-1].content}

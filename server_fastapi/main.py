@@ -96,9 +96,6 @@ def get_company_prompt(company, context):
   {context}
   """
 
-def get_unique_id(company, position):
-    return company+' | '+position
-
 class JTAPI:
     def __init__(self):
         # Enable CORS
@@ -124,6 +121,7 @@ class JTAPI:
         self.app.add_api_route("/likeJob", self.likeJob, methods=["PUT"])
         self.app.add_api_route("/dislikeJob", self.dislikeJob, methods=["PUT"])
         self.app.add_api_route("/askBot", self.askBot, methods=["POST"])
+        self.app.add_api_route("/openConversation", self.openConversation, methods=["POST"])
 
         self.db = DBManager()
         self.qd = QdrantManager()
@@ -155,8 +153,11 @@ class JTAPI:
 
     def askBot(self,body:dict):
         print(body)
-        return {"data":self.chatbot(body['query'],get_unique_id(body['company'],body['position']))}
+        return {"data":self.chatbot(body['query'])}
 
+    def openConversation(self,body:dict):
+        message_history = self.chatbot.open_conversation(body['company'],body['position'])
+        return {"messages":message_history}
 
     async def searchLI(self,body: dict):
         query_options = body.get("queryOptions", {})
