@@ -11,8 +11,12 @@
             <div v-if="isOpen" class="card-body overflow-y-scroll d-flex flex-column justify-content-between" style="height: 50vh;" ref="chatBody">
                 <div>
                   <em v-if="contextTitle">Context taken from {{ contextTitle }}</em>
-                  <div v-for="(message, index) in messages" :key="index" class="mb-2">
-                      <strong>{{ message.sender }}:</strong> {{ message.text }}
+                  <div v-for="(message, index) in messages" :key="index" class="mb-2 d-flex flex-row " :class="message.sender==='Bot' ? 'text-start justify-content-start' : 'text-end justify-content-end'">
+                      <div class="w-75 border border-primary rounded-4 p-3">
+                        <strong>{{ message.sender }}:</strong> 
+                        <div v-html="markdown2Html(message.text)"></div>
+                        <!--{{ message.text }}-->
+                      </div>
                   </div>
                 </div>
                 <div class="input-group">
@@ -31,14 +35,15 @@
 </template>
 
 <script>
+import { marked } from "marked";
 export default {
   data() {
     return {
       isOpen: false,
       messages:[],
       userInput: '',
-      company:'',
-      position:''
+      company:null,
+      position:null
     };
   },
   computed:{
@@ -52,7 +57,7 @@ export default {
   methods: {
     toggleChat() {
       if(!this.isOpen){
-        this.openChat()
+        this.openChat(this.company, this.position)
       }else{
         this.isOpen = false;
       }
@@ -100,6 +105,9 @@ export default {
             chatBody.scrollTop = chatBody.scrollHeight;
         }
     },
+    markdown2Html(md){
+      return marked(md)
+    }
   },
   updated() {
     this.$nextTick(() => {

@@ -90,7 +90,7 @@ class Chatbot:
         summary = state.get("summary", "")
         jobsContext = state.get("jobsContext", "")
 
-        system_messages=[SystemMessage(content='You are an AI assistant that helps users search for jobs. ')]
+        system_messages=[SystemMessage(content='You are an AI assistant that helps users search for jobs. You return the results in markdown format')]
 
         if summary:
             system_messages.append(SystemMessage(content=f"Summary of conversation earlier: {summary}"))
