@@ -64,7 +64,7 @@ export default {
         remoteFilter: 'remote',
         salary: '',
         experienceLevel: '',
-        limit: '5',
+        limit: '10',
         page: 0,
         sortBy: 'relevant'
       },

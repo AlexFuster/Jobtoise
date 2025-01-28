@@ -6,7 +6,6 @@ import asyncio
 import requests
 from bs4 import BeautifulSoup
 import json
-from mykeys import apiKey
 from io_formats import AIOutputData, OutputData
 from db_manager import DBManager
 from qdrant_manager import QdrantManager
@@ -14,10 +13,6 @@ from chatbot import Chatbot
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 import os
-
-os.environ['OPENAI_API_KEY'] = apiKey
-
-
 
 def fetch_with_retry(url, retries=3, delay_ms=2000):
     for attempt in range(1, retries + 1):
@@ -78,7 +73,8 @@ def get_company_prompt(company, context):
     "Maturity": "Consolidated",
     "Role": "Develop and optimize deep learning models for image generation",
     "Technologies": "Deep learning, Pytorch, Diffusion models, model optimization",
-    "Salary": "120000$-150000$"
+    "Salary": "120000$-150000$",
+    "Summary":"" 
   }
 
   return f"""Summarize the following information about a job offer of the company ${company} and return it in JSON format.
@@ -90,8 +86,8 @@ def get_company_prompt(company, context):
   Very brief description of the role
   Key technologies and knowledge fields that they require (as a succession of keywords)
   Salary range if available (else, not specified)
-  Example output with a Google offer:
-  {example_output}
+  General summary of the offer. One or two paragraphs that contain the information of the role, requirements and benefits of the job
+  
   Here is some context of the offer:
   {context}
   """

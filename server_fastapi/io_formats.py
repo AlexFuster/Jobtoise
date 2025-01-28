@@ -11,6 +11,7 @@ class AIOutputData(BaseModel):
     Role: str
     Technologies: str
     Salary: str
+    Summary: str
 
 class PositionData(BaseModel):
     position: str
@@ -29,6 +30,7 @@ class PositionData(BaseModel):
     Role: str
     Technologies: str
     Salary: str
+    Summary: str
     liked: bool
     disliked: bool
 

@@ -4,9 +4,6 @@ from langchain_openai import OpenAIEmbeddings
 import uuid
 import os
 
-from mykeys import apiKey
-os.environ['OPENAI_API_KEY'] = apiKey
-
 class QdrantManager:
     def __init__(self):
         self.qdrant_client = QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))

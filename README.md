@@ -9,6 +9,11 @@ It uses LLMs to organize, summarize and retrieve information about job offers.
 The page is intended only for local use, as it uses LinkedIn guest web scrapping, and not the official API, which is private.
 
 The app is not yet very intuitive, as it is yet in development.
+
+Here we have a video that shows the main functionality:
+[![Jobtoise video](https://i9.ytimg.com/vi_webp/A7V84hYfp_k/maxresdefault.webp?v=67987db8&sqp=COz54bwG&rs=AOn4CLBEXgmWbTBOwNL0qXZIr7f92-USrA)](https://youtu.be/A7V84hYfp_k)
+
+
 Here it is the intended worflow of the app:
 
 1. Go to the "Search" tab, add your search filters and click the "search" button
