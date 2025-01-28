@@ -1,6 +1,5 @@
 from langgraph.graph import MessagesState
 from langchain_core.messages import SystemMessage, HumanMessage, RemoveMessage, ToolMessage
-from IPython.display import Image, display
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from typing import List
