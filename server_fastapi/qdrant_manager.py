@@ -23,12 +23,12 @@ class QdrantManager:
             print(e)
         self.top_k = 2
 
-    def addVectors(self,documents,ids):
+    def addVectors(self,documents,metadata):
         embeddings = self.embedding_model.embed_documents(documents)
 
         points = [
-            PointStruct(id=str(uuid.uuid4()), vector=embedding, payload={"unique_id":jobID,"text": doc})
-            for jobID, embedding, doc in zip(ids, embeddings, documents)
+            PointStruct(id=str(uuid.uuid4()), vector=embedding, payload={"company":company,"position":position,"text": doc})
+            for (company, position), embedding, doc in zip(metadata, embeddings, documents)
         ]
 
         self.qdrant_client.upsert(collection_name=self.collection_name, points=points)

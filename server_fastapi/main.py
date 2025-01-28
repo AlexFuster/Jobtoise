@@ -192,7 +192,7 @@ class JTAPI:
 
         #print(self.ret_data)
         self.db.save(self.ret_data)
-        self.qd.addVectors(self.context_data,[get_unique_id(job['company'], job['position']) for job in self.ret_data])
+        self.qd.addVectors(self.context_data,[(job['company'], job['position']) for job in self.ret_data])
 
         return {"data": self.ret_data}
 
